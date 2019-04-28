@@ -50,6 +50,9 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
+environment: ## development environment with conda
+	conda env update -f environment.yml
+
 format: ## style format all python files with Black
 	find . -name '*.py' -exec black -l 80 {} +
 
