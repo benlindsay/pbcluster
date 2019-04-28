@@ -50,6 +50,9 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
+format: ## style format all python files with Black
+	find . -name '*.py' -exec black -l 80 {} +
+
 lint: ## check style with flake8
 	flake8 pbcluster tests
 
