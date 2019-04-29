@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+#
+# test_trajectory_init.py
+#
+# Copyright (c) 2019 Ben Lindsay <benjlindsay@gmail.com>
+
+from mock import patch
+import numpy as np
+import pandas as pd
+import pytest
+
+from pbcluster.trajectory import Trajectory
+
+"""Tests for Trajectory initialization."""
+
+
+def test__convert_ndarray_to_df_rejects_non_ndarrays():
+    with pytest.raises(ValueError, match="must be a numpy ndarray"):
+        # See https://medium.com/
+        #     @george.shuklin/mocking-complicated-init-in-python-6ef9850dd202
+        with patch.object(Trajectory, "__init__", lambda x, y: None):
+            t = Trajectory(None)
+            non_ndarray = [[0, 1, 2], [3, 4, 5]]
+            df = t._convert_ndarray_to_df(non_ndarray)
+
+
+@pytest.mark.parametrize(
+    "ndarray", [np.arange(3), np.arange(16).reshape((2, 2, 2, 2))]
+)
+def test__convert_ndarray_to_df_rejects_wrong_dimensions(ndarray):
+    with pytest.raises(ValueError, match="must have 2 or 3"):
+        # See https://medium.com/
+        #     @george.shuklin/mocking-complicated-init-in-python-6ef9850dd202
+        with patch.object(Trajectory, "__init__", lambda x, y: None):
+            t = Trajectory(None)
+            df = t._convert_ndarray_to_df(ndarray)
+
+
+def test__convert_ndarray_to_df_converts_2d_array():
+    # See https://medium.com/
+    #     @george.shuklin/mocking-complicated-init-in-python-6ef9850dd202
+    with patch.object(Trajectory, "__init__", lambda x, y: None):
+        t = Trajectory(None)
+        array_2d = np.arange(6).reshape((2, 3))
+        df = t._convert_ndarray_to_df(array_2d)
+        assert len(df) == 2
+        assert np.all(df["timestep"] == 0)
+        assert np.allclose(array_2d, df[["x0", "x1", "x2"]].values)
+
+
+def test__convert_ndarray_to_df_converts_3d_array():
+    # See https://medium.com/
+    #     @george.shuklin/mocking-complicated-init-in-python-6ef9850dd202
+    with patch.object(Trajectory, "__init__", lambda x, y: None):
+        t = Trajectory(None)
+        array_3d = np.arange(24).reshape((2, 4, 3))
+        df = t._convert_ndarray_to_df(array_3d)
+        print(df)
+        print(df.loc[:4, "timestep"])
+        assert len(df) == 8
+        assert np.all(df.iloc[:4]["timestep"] == 0)
+        assert np.all(df.iloc[4:]["timestep"] == 1)
+        assert np.all(
+            df.iloc[:4][["x0", "x1", "x2"]].values == array_3d[0, :, :]
+        )
+        assert np.all(
+            df.iloc[4:][["x0", "x1", "x2"]].values == array_3d[1, :, :]
+        )
+
+
+@pytest.mark.parametrize(
+    "input_df,error_text_match",
+    [
+        (
+            pd.DataFrame(dict(x0=np.arange(3), x1=np.arange(3))),
+            "particle_id column",
+        ),
+        (
+            pd.DataFrame(dict(particle_id=np.arange(3), x1=np.arange(3))),
+            "columns x0",
+        ),
+        (
+            pd.DataFrame(dict(particle_id=np.ones(3), x0=np.arange(3))),
+            "Duplicate particle_ids",
+        ),
+        (
+            pd.DataFrame(dict(particle_id=np.ones(3), x0=np.arange(3))),
+            "Duplicate particle_ids",
+        ),
+    ],
+)
+def test__verify_dataframe_raises_value_error(input_df, error_text_match):
+    with pytest.raises(ValueError, match=error_text_match):
+        # See https://medium.com/
+        #     @george.shuklin/mocking-complicated-init-in-python-6ef9850dd202
+        with patch.object(Trajectory, "__init__", lambda x, y: None):
+            t = Trajectory(None)
+            t._verify_dataframe(input_df)
+
+
+def test__verify_dataframe_fills_missing_timestep_and_particle_type_columns():
+    # See https://medium.com/
+    #     @george.shuklin/mocking-complicated-init-in-python-6ef9850dd202
+    with patch.object(Trajectory, "__init__", lambda x, y: None):
+        t = Trajectory(None)
+        input_df = pd.DataFrame(
+            dict(particle_id=np.arange(3), x0=np.arange(3))
+        )
+        output_df = t._verify_dataframe(input_df)
+        assert "timestep" in output_df.columns
+        assert "particle_type" in output_df.columns
+        assert np.all(output_df["timestep"] == np.zeros(3))
+        assert np.all(output_df["particle_type"] == np.zeros(3))
