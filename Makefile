@@ -1,3 +1,6 @@
+CONDA = $(CONDA_EXE)
+CONDA_BIN = $(dir $(CONDA))
+
 .PHONY: clean clean-test clean-pyc clean-build docs help
 .DEFAULT_GOAL := help
 
@@ -50,11 +53,14 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
-environment: ## development environment with conda
-	conda env update -f environment.yml
+environment: ## development environment with conda and pre-commit hooks
+	# Create or update conda environment (pbcluster)
+	$(CONDA) env update -f environment.yml
+	# Install pre-commit hooks for formatting with Black
+	source $(CONDA_BIN)/activate pbcluster && pre-commit install
 
 format: ## style format all python files with Black
-	find . -name '*.py' -exec black -l 80 {} +
+	find . -name '*.py' -exec black {} +
 
 lint: ## check style with flake8
 	flake8 pbcluster tests

@@ -1,24 +1,27 @@
-name: pbcluster-dev
+name: pbcluster
 channels:
   - conda-forge
   - defaults
 dependencies:
   - python=3.7
-  - black
-  - bumpversion
-  - coverage
-  - flake8
+  # package dependencies
   - networkx
   - numpy
   - pandas
   - plotnine
-  - pygraphviz
-  - pylint
   - scikit-learn
   - scipy
+  - pygraphviz
+  # dev dependencies
+  - black
+  - bumpversion
+  - coverage
+  - flake8
+  - pre_commit
+  - pylint
+  - pytest
+  - pytest-runner
   - Sphinx
   - watchdog
   - tox
   - twine
-  - pytest
-  - pytest-runner
