@@ -13,6 +13,9 @@ PBCluster
         :target: https://pbcluster.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
+.. image:: https://codecov.io/gh/benlindsay/pbcluster/branch/master/graph/badge.svg
+        :target: https://codecov.io/gh/benlindsay/pbcluster
+
 
 
 
