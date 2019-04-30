@@ -152,8 +152,15 @@ class Trajectory:
             trajectory_df (dataframe): Dataframe containing trajectory
                 information 
         
+        Raises:
+            ValueError: If no `x0` column exists
+        
         Returns:
             int: Number of dimensions
         """
         x_columns = self._get_x_column_names(trajectory_df)
+        n_dimensions = len(x_columns)
+        if n_dimensions == 0:
+            raise ValueError("At least one dimension (x0 column) is required!")
+        return n_dimensions
         return len(x_columns)
