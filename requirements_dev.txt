@@ -1,0 +1,25 @@
+# package dependencies
+networkx
+numpy
+pandas
+plotnine
+scikit-learn
+scipy
+pygraphviz
+
+# dev dependencies
+black
+bumpversion
+coverage
+flake8
+mock
+pre-commit
+pylint
+pytest
+pytest-runner
+sphinx
+sphinx_rtd_theme
+sphinxcontrib-napoleon
+tox
+twine
+watchdog
