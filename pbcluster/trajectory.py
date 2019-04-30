@@ -28,7 +28,7 @@ class Trajectory:
             `x0`, x1`, ... `xN`
     """
 
-    def __init__(self, trajectory_data):
+    def __init__(self, trajectory_data, box_length):
         if isinstance(trajectory_data, pd.DataFrame):
             self.trajectory_df = trajectory_data.copy()
         elif isinstance(trajectory_data, np.ndarray):
