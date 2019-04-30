@@ -5,7 +5,9 @@ python:
   - 3.6
 
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox-travis coverage codecov
+install:
+  - pip install -U tox-travis coverage codecov
+  - pip install -r requirements_dev.txt
 
 # Command to run tests, e.g. python setup.py test
 script:
