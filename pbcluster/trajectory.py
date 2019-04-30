@@ -34,6 +34,7 @@ class Trajectory:
         elif isinstance(trajectory_data, np.ndarray):
             self.trajectory_df = self._convert_ndarray_to_df(trajectory_data)
         self.trajectory_df = self._verify_dataframe(self.trajectory_df)
+        self.n_dimensions = self._get_n_dimensions(self.trajectory_df)
 
     def _convert_ndarray_to_df(self, trajectory_array):
         """Convert numpy array with trajectory information into a dataframe
@@ -96,13 +97,7 @@ class Trajectory:
             dataframe: Contains columns in order `timestep`, `particle_id`,
                 `particle_type`, `x0`, `x1`, ... `xN`
         """
-        x_columns = [c for c in trajectory_df.columns if c.startswith("x")]
-        x_columns = sorted(x_columns, key=lambda x: int(x[1:]))
-        if [int(x[1:]) for x in x_columns] != list(range(len(x_columns))):
-            raise ValueError(
-                "Expected columns x0, x1, ... xN and no other "
-                "columns beginning with 'x'"
-            )
+        x_column_names = self._get_x_column_names(trajectory_df)
         if "particle_id" not in trajectory_df.columns:
             raise ValueError("particle_id column does not exist!")
         if "timestep" not in trajectory_df.columns:
@@ -120,6 +115,33 @@ class Trajectory:
             trajectory_df["particle_type"] = 0
         # Arrange columns in desired order
         trajectory_df = trajectory_df[
-            ["timestep", "particle_id", "particle_type"] + x_columns
+            ["timestep", "particle_id", "particle_type"] + x_column_names
         ]
         return trajectory_df
+
+    def _get_x_column_names(self, trajectory_df):
+        x_column_names = [
+            c for c in trajectory_df.columns if c.startswith("x")
+        ]
+        x_column_names = sorted(x_column_names, key=lambda x: int(x[1:]))
+        ints_from_column_names = [int(x[1:]) for x in x_column_names]
+        expected_ints = list(range(len(x_column_names)))
+        if ints_from_column_names != expected_ints:
+            raise ValueError(
+                "Expected columns x0, x1, ... xN and no other "
+                "columns beginning with 'x'"
+            )
+        return x_column_names
+
+    def _get_n_dimensions(self, trajectory_df):
+        """Return the number of dimensions in this trajectory
+        
+        Args:
+            trajectory_df (dataframe): Dataframe containing trajectory
+                information 
+        
+        Returns:
+            int: Number of dimensions
+        """
+        x_columns = self._get_x_column_names(trajectory_df)
+        return len(x_columns)

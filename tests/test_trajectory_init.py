@@ -92,3 +92,14 @@ def test__verify_dataframe_fills_missing_timestep_and_particle_type_columns(
     assert "particle_type" in output_df.columns
     assert np.all(output_df["timestep"] == np.zeros(3))
     assert np.all(output_df["particle_type"] == np.zeros(3))
+
+
+@pytest.mark.parametrize("x_names", [["x1"], ["x0", "x2"]])
+def test__get_x_column_names_raises_error_on_bad_x_names(
+    x_names, traj_mock_init
+):
+    with pytest.raises(ValueError, match="columns x0"):
+        input_df = pd.DataFrame()
+        for x_name in x_names:
+            input_df[x_name] = np.arange(3)
+        _ = traj_mock_init._get_x_column_names(input_df)
