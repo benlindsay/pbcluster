@@ -83,11 +83,11 @@ class Trajectory:
         specifications
         
         Args:
-        trajectory_data (dataframe): Dataframe containing trajectory data. It
-            must contain at least column `particle_id` and columns `x0`, `x1`,
-            ... `xN`. If there are multiple timesteps, a `timestep` column must
-            be included. If there are multiple particle types, a `particle_type`
-            column must be included.
+            trajectory_data (dataframe): Dataframe containing trajectory data.
+                It must contain at least column `particle_id` and columns `x0`,
+                `x1`, ... `xN`. If there are multiple timesteps, a `timestep`
+                column must be included. If there are multiple particle
+                types, a `particle_type` column must be included.
 
         Raises:
             ValueError: trajectory_df does not meet specifications
