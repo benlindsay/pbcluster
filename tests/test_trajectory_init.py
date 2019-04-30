@@ -103,3 +103,19 @@ def test__get_x_column_names_raises_error_on_bad_x_names(
         for x_name in x_names:
             input_df[x_name] = np.arange(3)
         _ = traj_mock_init._get_x_column_names(input_df)
+
+
+@pytest.mark.parametrize(
+    "box_lengths,error,error_text_match",
+    [
+        ("foo", TypeError, "float or numpy array"),
+        (np.array([1, 2]), ValueError, "must have length"),
+        (-1, ValueError, "greater than 0"),
+    ],
+)
+def test__verify_box_lengths_errors(
+    box_lengths, error, error_text_match, traj_mock_init
+):
+    with pytest.raises(error, match=error_text_match):
+        traj_mock_init.n_dimensions = 3
+        _ = traj_mock_init._verify_box_lengths(box_lengths)

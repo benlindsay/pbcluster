@@ -28,13 +28,14 @@ class Trajectory:
             `x0`, x1`, ... `xN`
     """
 
-    def __init__(self, trajectory_data, box_length):
+    def __init__(self, trajectory_data, box_lengths):
         if isinstance(trajectory_data, pd.DataFrame):
             self.trajectory_df = trajectory_data.copy()
         elif isinstance(trajectory_data, np.ndarray):
             self.trajectory_df = self._convert_ndarray_to_df(trajectory_data)
         self.trajectory_df = self._verify_dataframe(self.trajectory_df)
         self.n_dimensions = self._get_n_dimensions(self.trajectory_df)
+        self.box_lengths = self._verify_box_lengths(box_lengths)
 
     def _convert_ndarray_to_df(self, trajectory_array):
         """Convert numpy array with trajectory information into a dataframe
@@ -163,4 +164,35 @@ class Trajectory:
         if n_dimensions == 0:
             raise ValueError("At least one dimension (x0 column) is required!")
         return n_dimensions
-        return len(x_columns)
+
+    def _verify_box_lengths(self, box_lengths):
+        """Verifies a proper box_lengths input
+        
+        Args:
+            box_lengths (float or ndarray): If float, the length of each side of
+                a cubic box. If ndarray, it must contain `n_dimensions` values
+                representing the lengths of each dimension of a rectangular box.
+        
+        Raises:
+            TypeError: If the input is not a float or ndarray
+            ValueError: If the input has the wrong dimensions or non-positive
+                numbers
+        
+        Returns:
+            ndarray: `n_dimensions` length array of simulation box lengths
+        """
+        if not isinstance(box_lengths, np.ndarray):
+            try:
+                # Assume it's the length of each side of a cube if it isn't a
+                # numpy array
+                box_lengths = float(box_lengths)
+                box_lengths = box_lengths * np.ones(self.n_dimensions)
+            except (TypeError, ValueError):
+                raise TypeError("box_lengths must be a float or numpy array!")
+        if box_lengths.ndim > 1 or len(box_lengths) != self.n_dimensions:
+            raise ValueError(
+                f"box_lengths must have length {self.n_dimensions}!"
+            )
+        if np.any(box_lengths <= 0):
+            raise ValueError(f"box_lengths must be greater than 0!")
+        return box_lengths
