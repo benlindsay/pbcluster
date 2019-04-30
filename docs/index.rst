@@ -1,7 +1,5 @@
-Welcome to PBCluster's documentation!
-======================================
-
 .. toctree::
+   :hidden:
    :maxdepth: 2
    :caption: Contents:
 
@@ -13,8 +11,4 @@ Welcome to PBCluster's documentation!
    authors
    history
 
-Indices and tables
-==================
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. include:: readme.rst
