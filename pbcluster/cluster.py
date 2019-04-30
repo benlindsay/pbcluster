@@ -13,7 +13,7 @@ class Cluster:
         """Compute cluster properties passed in `properties` variable
         
         Args:
-            props (list, optional): List of cluster properties to compute.
+            properties (list, optional): List of cluster properties to compute.
                 Defaults to ["n_particles"].
         """
         for prop in properties:
