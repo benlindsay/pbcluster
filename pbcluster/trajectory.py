@@ -120,6 +120,18 @@ class Trajectory:
         return trajectory_df
 
     def _get_x_column_names(self, trajectory_df):
+        """Return a list of column names containing particle position info
+        
+        Args:
+            trajectory_df (dataframe): Dataframe of trajectory data
+        
+        Raises:
+            ValueError: If columns starting with `x` aren't just `x0`, `x1`, ...
+                `xN`, or `x0` doesn't exist.
+        
+        Returns:
+            list: list of all column names with particle position data
+        """
         x_column_names = [
             c for c in trajectory_df.columns if c.startswith("x")
         ]
