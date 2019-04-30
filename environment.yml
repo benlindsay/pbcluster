@@ -25,8 +25,8 @@ dependencies:
   - pytest-runner
   - Sphinx
   - sphinx_rtd_theme
-  - watchdog
   - tox
   - twine
+  - watchdog
   - pip:
     - sphinxcontrib-napoleon
