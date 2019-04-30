@@ -196,3 +196,25 @@ class Trajectory:
         if np.any(box_lengths <= 0):
             raise ValueError(f"box_lengths must be greater than 0!")
         return box_lengths
+
+    def _get_cluster_list(self, timestep_df):
+        return []
+
+    def compute_cluster_properties(
+        self, cutoff_distance, properties=["n_particles"]
+    ):
+        """Separates particles into clusters in each timestep based on
+        cutoff_distance, and computes all properties listed in `props`
+        
+        Args:
+            cutoff_distance (float): Maximum distance two particles can be from
+                each other to be considered part of the same cluster
+            props (list, optional): List of properties to computer for each
+                cluster. Defaults to ["n_particles"].
+        """
+        timestep_dict = dict()
+        for timestep, ts_group in self.trajectory_df.groupby("timestep"):
+            cluster_list = self._get_cluster_list(ts_group)
+            for cluster in cluster_list:
+                cluster.compute_properties(properties)
+            timestep_dict[timestep] = cluster_list
