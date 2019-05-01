@@ -2,8 +2,12 @@
 #
 # trajectory.py
 
+import networkx as nx
 import numpy as np
 import pandas as pd
+
+from .cluster import Cluster
+from .utils import get_graph_from_particle_positions
 
 """Trajectory module."""
 
@@ -21,14 +25,24 @@ class Trajectory:
             included. If ndarray, its dimensions must be
             (n_timesteps, n_particles, n_dimensions), and it will be assumed
             that all particles are of the same type.
+        box_lengths (float or ndarray): If float, the length of each side of
+            a cubic box. If ndarray, it must contain `n_dimensions` values
+            representing the lengths of each dimension of a rectangular box.
+        cutoff_distance (float): Maximum distance two particles can be from
+            each other to be considered part of the same cluster
 
     Attributes:
         trajectory_df (dataframe): Dataframe containing trajectory data with
             columns `timestep`, `particle_id`, `particle_type`,
             `x0`, x1`, ... `xN`
+        n_dimensions (int): Number of dimensions in the system
+        box_lengths (ndarray): Length `n_dimensions` array representing the
+            lengths of each dimension of a rectangular box.
+        cutoff_distance (float): Maximum distance two particles can be from
+            each other to be considered part of the same cluster
     """
 
-    def __init__(self, trajectory_data, box_lengths):
+    def __init__(self, trajectory_data, box_lengths, cutoff_distance):
         if isinstance(trajectory_data, pd.DataFrame):
             self.trajectory_df = trajectory_data.copy()
         elif isinstance(trajectory_data, np.ndarray):
@@ -36,6 +50,8 @@ class Trajectory:
         self.trajectory_df = self._verify_dataframe(self.trajectory_df)
         self.n_dimensions = self._get_n_dimensions(self.trajectory_df)
         self.box_lengths = self._verify_box_lengths(box_lengths)
+        self.cutoff_distance = float(cutoff_distance)
+        self.timestep_dict = None
 
     def _convert_ndarray_to_df(self, trajectory_array):
         """Convert numpy array with trajectory information into a dataframe
@@ -198,23 +214,34 @@ class Trajectory:
         return box_lengths
 
     def _get_cluster_list(self, timestep_df):
-        return []
+        particle_positions = timestep_df.filter(regex="x.*").values
+        full_graph = get_graph_from_particle_positions(
+            particle_positions, self.box_lengths, self.cutoff_distance
+        )
+        cluster_graph_list = list(nx.connected_component_subgraphs(full_graph))
+        cluster_list = [
+            Cluster(cluster_graph) for cluster_graph in cluster_graph_list
+        ]
+        return cluster_list
 
     def compute_cluster_properties(
-        self, cutoff_distance, properties=["n_particles"]
+        self, properties=["n_particles"], verbosity=0
     ):
         """Separates particles into clusters in each timestep based on
         cutoff_distance, and computes all properties listed in `props`
         
         Args:
-            cutoff_distance (float): Maximum distance two particles can be from
-                each other to be considered part of the same cluster
             props (list, optional): List of properties to computer for each
                 cluster. Defaults to ["n_particles"].
         """
         timestep_dict = dict()
         for timestep, ts_group in self.trajectory_df.groupby("timestep"):
+            if verbosity > 0:
+                print("Timestep:", timestep, end="")
             cluster_list = self._get_cluster_list(ts_group)
-            for cluster in cluster_list:
+            for i, cluster in enumerate(cluster_list):
+                if verbosity > 1:
+                    print("Cluster:", i)
                 cluster.compute_properties(properties)
             timestep_dict[timestep] = cluster_list
+        self.timestep_dict = timestep_dict
