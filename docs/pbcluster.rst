@@ -20,6 +20,14 @@ pbcluster.trajectory module
     :undoc-members:
     :show-inheritance:
 
+pbcluster.utils module
+----------------------
+
+.. automodule:: pbcluster.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
