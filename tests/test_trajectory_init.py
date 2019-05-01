@@ -1,9 +1,6 @@
-#!/usr/bin/env python
 # -*- coding:utf-8 -*-
 #
 # test_trajectory_init.py
-#
-# Copyright (c) 2019 Ben Lindsay <benjlindsay@gmail.com>
 
 from mock import patch
 import numpy as np
