@@ -1,33 +1,20 @@
-# Config file for automatic testing at travis-ci.org
-
 language: python
 python:
-  - 3.6
-
-# Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+- 3.6
 install:
-  - pip install -U tox-travis coverage codecov
-  - pip install -r requirements_dev.txt
-
-# Command to run tests, e.g. python setup.py test
+- pip install -U tox-travis coverage codecov
+- pip install -r requirements_dev.txt
 script:
-  - tox
-  - coverage run --source pbcluster -m pytest
-
-# Push the results back to codecov
+- tox
+- coverage run --source pbcluster -m pytest
 after_success:
-  - codecov
-
-# Assuming you have installed the travis-ci CLI tool, after you
-# create the Github repo and add it to Travis, run the
-# following command to finish PyPI deployment setup:
-# $ travis encrypt --add deploy.password
+- codecov
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
   user: benlindsay
   password:
-    secure: PLEASE_REPLACE_ME
+    secure: FT66tJs0ey3XpiVN/jq4TA8aQ/jyoahpqqo+gpbhFXZmM+2iG1vM1FiiETgMw+b7HUyFZuvP/NIW6yAlTLbebwBKfifjbATENfoiIM0j8JsA/UHMGsrd7ILI2fGELQKftNVzPTL+DHraJo0f2i0GHh9g+wB7E1Rf11/iAtTr/is29QryR/KUU3fKt6KnIpvVoCI0D0/PKdM5H1kjp4s9ntq5n2cI34nqzhuZDskVMj8D8x+JknO7vEPZd3jPq5MfoLwLCaPy728n9emNj+0yZWa3kaD/6SJJXKI+2BumvF8rEmPtxp8/rTQpxNdP8GmuQbYfYJ0j+EIUmv6dnzXQMh/+SxfAAcreCl2IO+N+axD4IPbrg1+NEof+KpSdUaYiZjFdhTCwEtpjGCYoSNhO9GNg7fVAIYQd12HjyDsyk70Eh7PY3ffXiWmwd3ld+Hjh2g+/c8aMA+gJvz3pFTo3SsilVx6DUbL8YHKJDMlKbZWCdFLIjj10+Ab4C+CZh3LIKdIJtnzOUeMlQSld3kzFDFoeSWiCV+9rNCfDBmHVFeyzpbuHCWGMWqvKhHA1Oo3EmcfPWz2gNr4iWNZ5WVzII2848fLqnQ7rWjQKSKvhby+dTXQ2KBQW8DF0Z9k7cyWPFcSmvEnjVE7RfbfBgJsNALCB9DC6FQzA5gH7yNHaxnU=
   on:
     tags: true
     repo: benlindsay/pbcluster
