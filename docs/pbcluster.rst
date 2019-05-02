@@ -1,6 +1,11 @@
 pbcluster package
 =================
 
+.. automodule:: pbcluster
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -29,10 +34,3 @@ pbcluster.utils module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: pbcluster
-    :members:
-    :undoc-members:
-    :show-inheritance:
