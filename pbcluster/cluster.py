@@ -14,6 +14,29 @@ from .utils import pairwise_distances
 
 class Cluster:
     """Object to store and compute data about an individual particle cluster
+
+    Args:
+        graph (networkx Graph): Contains nodes and edges corresponding to
+            particles and bonds, respectively, where a bond implies the particles
+            are within a distance of `cutoff_distance` from each other.
+        particle_df (dataframe): Dataframe where index is `particle_id`, and
+            there are `n_dimensions` columns labelled `x0`, x1`, ... `xN`
+        box_lengths (ndarray): Must contain `n_dimensions` values representing
+            the lengths of each dimension of a rectangular box.
+        cutoff_distance (float): Maximum distance two particles can be from
+            each other to be considered part of the same cluster
+    
+    Attributes:
+        graph (networkx Graph): Contains nodes and edges corresponding to
+            particles and bonds, respectively, where a bond implies the particles
+            are within a distance of `cutoff_distance` from each other.
+        particle_df (dataframe): Dataframe where index is `particle_id`, and
+            there are `n_dimensions` columns labelled `x0`, x1`, ... `xN`
+        box_lengths (ndarray): Must contain `n_dimensions` values representing
+            the lengths of each dimension of a rectangular box.
+        cutoff_distance (float): Maximum distance two particles can be from
+            each other to be considered part of the same cluster
+        n_dimensions (int): Number of dimensions in the system
     """
 
     def __init__(self, graph, particle_df, box_lengths, cutoff_distance):
@@ -25,7 +48,7 @@ class Cluster:
         self.particle_df = particle_df.copy()
         self.box_lengths = box_lengths
         self.cutoff_distance = cutoff_distance
-        self.cluster_properties_dict = dict()
+        self.n_dimensions = len(box_lengths)
 
     def compute_cluster_properties(self, properties=["n_particles"]):
         """Compute cluster properties passed in `properties` variable
