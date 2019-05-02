@@ -51,7 +51,8 @@ class Trajectory:
         self.n_dimensions = self._get_n_dimensions(self.trajectory_df)
         self.box_lengths = self._verify_box_lengths(box_lengths)
         self.cutoff_distance = float(cutoff_distance)
-        self.timestep_dict = None
+        self.cluster_dict = None
+        self.cluster_dict = self._get_cluster_dict()
 
     def _convert_ndarray_to_df(self, trajectory_array):
         """Convert numpy array with trajectory information into a dataframe
@@ -218,35 +219,114 @@ class Trajectory:
             raise ValueError(f"box_lengths must be greater than 0!")
         return box_lengths
 
-    def _get_cluster_list(self, timestep_df):
-        particle_positions = timestep_df.filter(regex="x.*").values
+    def _get_one_timestep_cluster_list(self, timestep_df):
+        """Returns list of Cluster objects for one timestep
+        
+        Args:
+            timestep_df (dataframe): This should be the rows of `trajectory_df`
+                corresponding to one timestep
+        
+        Returns:
+            list: List of Cluster objects from the current timestep
+        """
+        particle_positions_df = timestep_df.set_index(
+            "particle_id", drop=True
+        ).filter(regex="x.*")
         full_graph = get_graph_from_particle_positions(
-            particle_positions, self.box_lengths, self.cutoff_distance
+            particle_positions_df, self.box_lengths, self.cutoff_distance
         )
-        cluster_graph_list = list(nx.connected_component_subgraphs(full_graph))
-        cluster_list = [
-            Cluster(cluster_graph) for cluster_graph in cluster_graph_list
-        ]
+        cluster_graphs = nx.connected_component_subgraphs(full_graph)
+        cluster_list = []
+        for cluster_graph in cluster_graphs:
+            particle_id_list = sorted(list(cluster_graph.nodes))
+            cluster_particle_df = particle_positions_df.query(
+                "particle_id in @particle_id_list"
+            )
+            cluster = Cluster(
+                cluster_graph,
+                cluster_particle_df,
+                self.box_lengths,
+                self.cutoff_distance,
+            )
+            cluster_list.append(cluster)
         return cluster_list
+
+    def _get_cluster_dict(self, verbosity=0):
+        """Returns dictionary of one cluster list for each timestep.
+        
+        Args:
+            verbosity (int, optional): A value greater than 0 will print some
+                output to show which timesteps have been computed. Defaults to
+                0.
+        
+        Returns:
+            dict: `timestep` -> `cluster_list` as key-value pairs
+        """
+        if self.cluster_dict is not None:
+            return self.cluster_dict
+        cluster_dict = dict()
+        for timestep, ts_group in self.trajectory_df.groupby("timestep"):
+            if verbosity > 0:
+                print("Timestep:", timestep)
+            cluster_list = self._get_one_timestep_cluster_list(ts_group)
+            cluster_dict[timestep] = cluster_list
+        return cluster_dict
 
     def compute_cluster_properties(
         self, properties=["n_particles"], verbosity=0
     ):
-        """Separates particles into clusters in each timestep based on
-        cutoff_distance, and computes all properties listed in `props`
+        """Returns dataframe of properties for each cluster in each timestep.
         
         Args:
-            props (list, optional): List of properties to computer for each
+            properties (list, optional): List of properties to computer for each
                 cluster. Defaults to ["n_particles"].
+            verbosity (int, optional): A value greater than 0 will print some
+                output to show which timesteps have been computed. Defaults to
+                0.
+        
+        Returns:
+            dataframe: columns of `timestep`, `cluster_id`, and
+            columns corresponding to properties in `properties` list.
         """
-        timestep_dict = dict()
-        for timestep, ts_group in self.trajectory_df.groupby("timestep"):
+        properties_dict_list = list()
+        for timestep, cluster_list in self.cluster_dict.items():
             if verbosity > 0:
-                print("Timestep:", timestep, end="")
-            cluster_list = self._get_cluster_list(ts_group)
+                print("Timestep:", timestep)
             for i, cluster in enumerate(cluster_list):
-                if verbosity > 1:
-                    print("Cluster:", i)
-                cluster.compute_properties(properties)
-            timestep_dict[timestep] = cluster_list
-        self.timestep_dict = timestep_dict
+                properties_dict = cluster.compute_cluster_properties(
+                    properties
+                )
+                properties_dict["timestep"] = timestep
+                properties_dict["cluster_id"] = i
+                properties_dict_list.append(properties_dict)
+        properties_df = pd.DataFrame(properties_dict_list)
+        return properties_df
+
+    def compute_particle_properties(
+        self, properties=["coordination_number"], verbosity=0
+    ):
+        """Returns dataframe of properties for each particle in each timestep.
+        
+        Args:
+            properties (list, optional): List of properties to computer for each
+                particle. Defaults to ["coordination_number"].
+            verbosity (int, optional): A value greater than 0 will print some
+                output to show which timesteps have been computed. Defaults to
+                0.
+
+        Returns:
+            dataframe: columns of `timestep`, `cluster_id`, `particle_id`, and
+            columns corresponding to properties in `properties` list.
+        """
+        properties_df_list = list()
+        for timestep, cluster_list in self.cluster_dict.items():
+            for i, cluster in enumerate(cluster_list):
+                properties_df = (
+                    cluster.compute_particle_properties(properties)
+                    .reset_index()  # Move particle_id column out of index
+                    .assign(timestep=timestep)
+                    .assign(cluster_id=i)
+                )
+                properties_df_list.append(properties_df)
+        properties_df = pd.concat(properties_df_list, ignore_index=True)
+        return properties_df
