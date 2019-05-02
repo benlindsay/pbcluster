@@ -38,12 +38,14 @@ class Cluster:
         """
         if properties == "all":
             properties = self._cluster_property_map.keys()
+        cluster_properties_dict = dict()
         for prop in properties:
             if prop not in self._cluster_property_map:
                 raise ValueError(f"Property '{prop}' is not valid!")
             prop_function = self._cluster_property_map[prop]
-            self.cluster_properties_dict[prop] = prop_function()
-        return self.cluster_properties_dict
+            cluster_properties_dict[prop] = prop_function()
+        cluster_properties_dict = flatten_dict(cluster_properties_dict)
+        return cluster_properties_dict
 
     def compute_particle_properties(self, properties=["coordination_number"]):
         """Compute particle properties passed in `properties` variable

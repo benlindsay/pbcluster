@@ -91,6 +91,28 @@ def pairwise_distances(particle_positions, box_lengths):
     )
 
 
+def flatten_dict(input_dict):
+    """Returns flattened dictionary given an input dictionary with maximum depth
+    of 2
+    
+    Args:
+        input_dict (dict): `str → number` key-value pairs, where value can be a
+            number or a dictionary with `str → number` key-value paris.
+    
+    Returns:
+        dict: Flattened dictionary with underscore-separated keys if
+        `input_dict` contained nesting
+    """
+    output_dict = dict()
+    for key, value in input_dict.items():
+        if isinstance(value, dict):
+            for subkey, subvalue in value.items():
+                output_dict[f"{key}_{subkey}"] = subvalue
+        else:
+            output_dict[key] = value
+    return output_dict
+
+
 def get_within_cutoff_matrix(distances, cutoff_distance):
     """Returns matrix of 0s and 1s that can be fed into networkx to initialize a
     graph
