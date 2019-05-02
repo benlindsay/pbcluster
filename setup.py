@@ -12,7 +12,7 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    "networkx",
+    "networkx>=2.1",
     "numpy",
     "pandas",
     "plotnine",
