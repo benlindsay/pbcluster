@@ -19,7 +19,7 @@ PBCluster
 
 
 
-PBCluster simplifies cluster analysis of particles in boxes with periodic boundary conditions.
+Analyze particle clusters in boxes with periodic boundaries
 
 
 * Free software: MIT license
