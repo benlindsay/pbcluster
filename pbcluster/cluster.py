@@ -34,7 +34,7 @@ class Cluster:
                 Defaults to ["n_particles"].
         
         Returns:
-            dict: property_name → property_value key-value pairs
+            dict: `property_name → property_value` key-value pairs
         """
         if properties == "all":
             properties = self._cluster_property_map.keys()
