@@ -63,8 +63,10 @@ class Cluster:
             if prop not in self._particle_property_map:
                 raise ValueError(f"Property '{prop}' is not valid!")
             prop_function = self._particle_property_map[prop]
-            self.particle_df[prop] = prop_function()
-        return self.particle_df
+
+    ######################
+    # Cluster Properties #
+    ######################
 
     def compute_n_particles(self):
         """Returns the number of particles in the cluster
@@ -74,6 +76,10 @@ class Cluster:
         """
         n_particles = self.graph.number_of_nodes()
         return n_particles
+
+    #######################
+    # Particle Properties #
+    #######################
 
     def compute_coordination_number(self):
         """Returns a numpy array of coordination numbers corresponding to each
