@@ -2,14 +2,14 @@
 #
 # trajectory.py
 
+"""Trajectory module."""
+
 import networkx as nx
 import numpy as np
 import pandas as pd
 
 from .cluster import Cluster
 from .utils import get_graph_from_particle_positions
-
-"""Trajectory module."""
 
 
 class Trajectory:
