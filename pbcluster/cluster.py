@@ -4,6 +4,7 @@
 
 """Cluster module."""
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 
@@ -40,7 +41,10 @@ class Cluster:
     """
 
     def __init__(self, graph, particle_df, box_lengths, cutoff_distance):
-        self._cluster_property_map = dict(n_particles=self.compute_n_particles)
+        self._cluster_property_map = dict(
+            n_particles=self.compute_n_particles,
+            minimum_node_cuts=self.compute_minimum_node_cuts,
+        )
         self._particle_property_map = dict(
             coordination_number=self.compute_coordination_number
         )
@@ -49,6 +53,58 @@ class Cluster:
         self.box_lengths = box_lengths
         self.cutoff_distance = cutoff_distance
         self.n_dimensions = len(box_lengths)
+
+    def _split_edges_with_faces_1_dim(self, graph, dim):
+        """Breaks all edges that cross the `dim`-dimension's periodic boundary
+        condition (PBC). Replaces those edges with edges connecting the lower
+        particle to the lower wall and the higher particle to the higher wall
+        
+        Args:
+            graph (networkx Graph): [description]
+            dim (int): Dimension in which to break the PBC.
+                (0, 1, 2, ... etc.)
+        
+        Returns:
+            networkx Graph: Copy of the input graph, modified to replace
+            PBC-crossing edges with conections to "face" nodes
+        """
+        graph = graph.copy()
+        dim_str = f"x{dim}"
+        low_face_node_position = {
+            f"x{d}": None for d in range(self.n_dimensions)
+        }
+        low_face_node_position[dim_str] = 0
+        high_face_node_position = {
+            f"x{d}": None for d in range(self.n_dimensions)
+        }
+        high_face_node_position[dim_str] = self.box_lengths[dim]
+        low_face_node_str = f"{dim_str}_low"
+        high_face_node_str = f"{dim_str}_high"
+        graph.add_node(low_face_node_str, **low_face_node_position)
+        graph.add_node(high_face_node_str, **high_face_node_position)
+        edges_to_add = []
+        edges_to_remove = []
+        for u, v in graph.edges:
+            if isinstance(u, str) or isinstance(v, str):
+                # Only the face nodes are strings
+                continue
+            u_x = self.particle_df.loc[u, dim_str]
+            v_x = self.particle_df.loc[v, dim_str]
+            if np.abs(u_x - v_x) > self.cutoff_distance:
+                edges_to_remove.append((u, v))
+                if u_x < v_x:
+                    low_node = u
+                    high_node = v
+                else:
+                    low_node = v
+                    high_node = u
+                edges_to_add.append((low_face_node_str, low_node))
+                edges_to_add.append((high_face_node_str, high_node))
+        for u, v in edges_to_add:
+            graph.add_edge(u, v)
+        for u, v in edges_to_remove:
+            graph.remove_edge(u, v)
+        return graph
 
     def compute_cluster_properties(self, properties=["n_particles"]):
         """Compute cluster properties passed in `properties` variable
@@ -107,6 +163,22 @@ class Cluster:
         """
         n_particles = self.graph.number_of_nodes()
         return n_particles
+
+    def compute_minimum_node_cuts(self):
+        """Returns dictionary of minimum node cuts required to break the
+        connection between faces normal to a given direction.
+        
+        Returns:
+            dict: `dimension_str → minimum_node_cuts` key-value pairs
+        """
+        minimum_node_cuts = dict()
+        for dim in range(self.n_dimensions):
+            split_graph = self._split_edges_with_faces_1_dim(self.graph, dim)
+            node_cut = nx.minimum_node_cut(
+                split_graph, f"x{dim}_low", f"x{dim}_high"
+            )
+            minimum_node_cuts[f"x{dim}"] = len(node_cut)
+        return minimum_node_cuts
 
     #######################
     # Particle Properties #
