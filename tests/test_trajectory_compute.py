@@ -21,6 +21,44 @@ def test_compute_n_particles():
         assert column in df.columns
 
 
+def test_compute_minimum_node_cuts():
+    particle_positions = np.array([[0.25, 2], [3.25, 2], [3.75, 2]])
+    box_lengths = np.array([4, 4])
+    cutoff_distance = 1.0
+    t = Trajectory(particle_positions, box_lengths, cutoff_distance)
+    df = t.compute_cluster_properties("all")
+    assert len(df) == 1
+    assert df.iloc[0]["minimum_node_cuts_x0"] == 0
+    assert df.iloc[0]["minimum_node_cuts_x1"] == 0
+    for column in [
+        "cluster_id",
+        "timestep",
+        "minimum_node_cuts_x0",
+        "minimum_node_cuts_x1",
+    ]:
+        assert column in df.columns
+
+
+def test_compute_all_cluster_properties():
+    particle_positions = np.array([[0.25, 2], [3.25, 2], [3.75, 2]])
+    box_lengths = np.array([4, 4])
+    cutoff_distance = 1.0
+    t = Trajectory(particle_positions, box_lengths, cutoff_distance)
+    df = t.compute_cluster_properties("all")
+    assert len(df) == 1
+    assert df.iloc[0]["n_particles"] == 3
+    assert df.iloc[0]["minimum_node_cuts_x0"] == 0
+    assert df.iloc[0]["minimum_node_cuts_x1"] == 0
+    for column in [
+        "cluster_id",
+        "n_particles",
+        "timestep",
+        "minimum_node_cuts_x0",
+        "minimum_node_cuts_x1",
+    ]:
+        assert column in df.columns
+
+
 def test_compute_coordination_number():
     particle_positions = np.array([[0.25, 2], [3.25, 2], [3.75, 2]])
     box_lengths = np.array([4, 4])
