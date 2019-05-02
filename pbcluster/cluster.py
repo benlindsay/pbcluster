@@ -4,8 +4,10 @@
 
 """Cluster module."""
 
+import numpy as np
 import pandas as pd
 
+from .utils import flatten_dict
 from .utils import get_within_cutoff_matrix
 from .utils import pairwise_distances
 
@@ -65,6 +67,10 @@ class Cluster:
             if prop not in self._particle_property_map:
                 raise ValueError(f"Property '{prop}' is not valid!")
             prop_function = self._particle_property_map[prop]
+            property_df = prop_function()
+            assert np.all(property_df.index == self.particle_df.index)
+            particle_df = self.particle_df.join(property_df, how="left")
+        return particle_df
 
     ######################
     # Cluster Properties #
@@ -84,15 +90,20 @@ class Cluster:
     #######################
 
     def compute_coordination_number(self):
-        """Returns a numpy array of coordination numbers corresponding to each
+        """Returns a dataframe of coordination numbers corresponding to each
         particle in the cluster
         
         Returns:
-            ndarray: Coordination numbers for particles in the cluster
+            dataframe: Coordination numbers for particles in the cluster. Index
+            is `particle_id`s and matches `particle_df.index`
         """
         distances = pairwise_distances(self.particle_df, self.box_lengths)
         within_cutoff_matrix = get_within_cutoff_matrix(
             distances, self.cutoff_distance
         )
         coordination_numbers = within_cutoff_matrix.sum(axis=1).astype(int)
-        return coordination_numbers
+        coordination_numbers_df = pd.DataFrame(
+            dict(coordination_number=coordination_numbers),
+            index=self.particle_df.index,
+        )
+        return coordination_numbers_df
