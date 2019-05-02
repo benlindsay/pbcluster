@@ -235,7 +235,10 @@ class Trajectory:
         full_graph = get_graph_from_particle_positions(
             particle_positions_df, self.box_lengths, self.cutoff_distance
         )
-        cluster_graphs = nx.connected_component_subgraphs(full_graph)
+        cluster_graphs = [
+            full_graph.subgraph(c).copy()
+            for c in nx.connected_components(full_graph)
+        ]
         cluster_list = []
         for cluster_graph in cluster_graphs:
             particle_id_list = sorted(list(cluster_graph.nodes))
