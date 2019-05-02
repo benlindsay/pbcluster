@@ -40,6 +40,7 @@ class Trajectory:
             lengths of each dimension of a rectangular box.
         cutoff_distance (float): Maximum distance two particles can be from
             each other to be considered part of the same cluster
+        cluster_dict (dict): `timestep → cluster_list` key-value pairs
     """
 
     def __init__(self, trajectory_data, box_lengths, cutoff_distance):
