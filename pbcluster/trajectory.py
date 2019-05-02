@@ -85,12 +85,15 @@ class Trajectory:
             (n_timesteps * n_particles, n_dimensions)
         )
         x_columns = ["x{}".format(i) for i in range(n_dimensions)]
-        trajectory_df = pd.DataFrame(trajectory_array, columns=x_columns)
-        timestep_array = (
-            np.arange(n_timesteps)[:, None] * np.ones(n_particles)[None, :]
-        ).flatten()
-        trajectory_df["timestep"] = timestep_array
-        trajectory_df["particle_id"] = np.arange(n_timesteps * n_particles)
+        trajectory_df = (
+            pd.DataFrame(trajectory_array, columns=x_columns)
+            .assign(
+                timestep=np.arange(n_timesteps * n_particles) // n_particles
+            )
+            .assign(
+                particle_id=np.arange(n_timesteps * n_particles) % n_particles
+            )
+        )
         # `particle_type` column is not created because all particles are
         # assumed to have the same type if an ndarray is passed, and that column
         # is created in _verify_dataframe anyway
