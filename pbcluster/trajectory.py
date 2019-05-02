@@ -264,7 +264,7 @@ class Trajectory:
                 0.
         
         Returns:
-            dict: `timestep` -> `cluster_list` as key-value pairs
+            dict: `timestep` → `cluster_list` as key-value pairs
         """
         if self.cluster_dict is not None:
             return self.cluster_dict
