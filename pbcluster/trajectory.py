@@ -133,6 +133,8 @@ class Trajectory:
         if "particle_type" not in trajectory_df.columns:
             # Assume all particles have the same type if type is not provided
             trajectory_df["particle_type"] = 0
+        for _, group in trajectory_df.groupby("timestep"):
+            assert np.all(group["particle_id"] == np.arange(len(group)))
         # Arrange columns in desired order
         trajectory_df = trajectory_df[
             ["timestep", "particle_id", "particle_type"] + x_column_names
