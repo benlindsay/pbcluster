@@ -6,7 +6,7 @@
    readme
    installation
    usage
-   modules
+   pbcluster
    contributing
    authors
    history
