@@ -38,6 +38,7 @@ class Cluster:
         cutoff_distance (float): Maximum distance two particles can be from
             each other to be considered part of the same cluster
         n_dimensions (int): Number of dimensions in the system
+        n_particles (int): Number of particles in the cluster
     """
 
     def __init__(self, graph, particle_df, box_lengths, cutoff_distance):
