@@ -53,6 +53,7 @@ class Cluster:
         self.box_lengths = box_lengths
         self.cutoff_distance = cutoff_distance
         self.n_dimensions = len(box_lengths)
+        self.n_particles = len(particle_df)
 
     def _split_edges_with_faces_1_dim(self, graph, dim):
         """Breaks all edges that cross the `dim`-dimension's periodic boundary
@@ -161,8 +162,7 @@ class Cluster:
         Returns:
             int: number of particles in the cluster
         """
-        n_particles = self.graph.number_of_nodes()
-        return n_particles
+        return self.n_particles
 
     def compute_minimum_node_cuts(self):
         """Returns dictionary of minimum node cuts required to break the
