@@ -81,3 +81,25 @@ def test_compute_coordination_number():
         "cluster_id",
     ]:
         assert column in df.columns
+
+
+def test_compute_distance_from_com():
+    particle_positions = np.array([[0.25, 2], [3.25, 2], [3.75, 2]])
+    box_lengths = np.array([4, 4])
+    cutoff_distance = 1.0
+    t = Trajectory(particle_positions, box_lengths, cutoff_distance)
+    df = t.compute_particle_properties(["distance_from_com"])
+    assert np.all(df["dx_from_com_x0"] == np.array([0.5, -0.5, 0]))
+    assert np.all(df["dx_from_com_x1"] == np.array([0, 0, 0]))
+    assert np.all(df["distance_from_com"] == np.array([0.5, 0.5, 0]))
+    for column in [
+        "particle_id",
+        "x0",
+        "x1",
+        "timestep",
+        "cluster_id",
+        "dx_from_com_x0",
+        "dx_from_com_x1",
+        "distance_from_com",
+    ]:
+        assert column in df.columns

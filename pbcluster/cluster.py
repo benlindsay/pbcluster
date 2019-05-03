@@ -48,7 +48,8 @@ class Cluster:
             center_of_mass=self.compute_center_of_mass,
         )
         self._particle_property_map = dict(
-            coordination_number=self.compute_coordination_number
+            coordination_number=self.compute_coordination_number,
+            distance_from_com=self.compute_distance_from_com,
         )
         self.graph = graph
         self.particle_df = particle_df.copy()
@@ -277,3 +278,36 @@ class Cluster:
             index=self.particle_df.index,
         )
         return coordination_numbers_df
+
+    def compute_distance_from_com(self, include_dx=True):
+        """Returns dataframe of distances from the center of mass for each
+        particle
+        
+        Args:
+            include_dx (bool, optional): If True, includes `dx_from_com_x*`
+                columns. Defaults to True.
+        
+        Returns:
+            dataframe: Index is `particle_id` (matching index of `particle_df`),
+            columns are `distance_from_com` (Euclidean distance from center of
+            mass), and `dx_from_com_x*` (Vector difference) where `*` represents
+            0, 1, ... `n_particles`.
+        """
+        center_of_mass_dict = self.compute_center_of_mass()
+        x_columns = [f"x{d}" for d in range(self.n_dimensions)]
+        center_of_mass = (
+            pd.DataFrame([center_of_mass_dict]).filter(x_columns).values
+        )
+        dx = self.particle_df[x_columns].values - center_of_mass
+        dx = np.where(dx < -self.box_lengths / 2, dx + self.box_lengths, dx)
+        dx = np.where(dx >= self.box_lengths / 2, dx - self.box_lengths, dx)
+        distances = np.linalg.norm(dx, axis=1)
+        if include_dx is True:
+            arrays_dict = {
+                f"dx_from_com_x{d}": dx[:, d] for d in range(self.n_dimensions)
+            }
+        else:
+            arrays_dict = {}
+        arrays_dict["distance_from_com"] = distances
+        distance_from_com_df = pd.DataFrame(dict(arrays_dict))
+        return distance_from_com_df
