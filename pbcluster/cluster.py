@@ -44,6 +44,7 @@ class Cluster:
         self._cluster_property_map = dict(
             n_particles=self.compute_n_particles,
             minimum_node_cuts=self.compute_minimum_node_cuts,
+            center_of_mass=self.compute_center_of_mass,
         )
         self._particle_property_map = dict(
             coordination_number=self.compute_coordination_number
@@ -55,6 +56,7 @@ class Cluster:
         self.n_dimensions = len(box_lengths)
         self.n_particles = len(particle_df)
         self._minimum_node_cuts_dict = None
+        self._center_of_mass_dict = None
 
     def _split_edges_with_faces_1_dim(self, graph, dim):
         """Breaks all edges that cross the `dim`-dimension's periodic boundary
@@ -185,6 +187,72 @@ class Cluster:
         # Store this because other computations like center of mass rely on it
         self._minimum_node_cuts_dict = minimum_node_cuts_dict
         return minimum_node_cuts_dict
+
+    def compute_center_of_mass(self):
+        """Returns cluster center of mass dictionary
+        
+        Returns:
+            dict: `{"x0": x0, "x1": x1, ...}`
+        """
+        if self._center_of_mass_dict is not None:
+            return self._center_of_mass_dict
+        minimum_node_cuts_dict = self.compute_minimum_node_cuts()
+        n_node_cuts = sum(value for value in minimum_node_cuts_dict.values())
+        # If n_node_cuts is greater than 0, that means the cluster spans the
+        # length of at least 1 dimension, and a center of mass can't
+        # necessarily be computed.
+        if n_node_cuts > 0:
+            return None
+        if len(self.graph) == 1:
+            node = list(self.graph.nodes)[0]
+            center_of_mass_dict = (
+                self.particle_df.filter(regex="x.*").loc[node, :].to_dict()
+            )
+            self._center_of_mass_dict = center_of_mass_dict
+            return center_of_mass_dict
+        x_array_dict = dict()
+        first = True
+        pdf = self.particle_df.filter(regex="x.*")
+        for node_1, node_2 in nx.dfs_edges(self.graph):
+            if first:
+                x_array_1 = pdf.loc[node_1, :].values
+                x_array_dict[node_1] = x_array_1
+                first = False
+            else:
+                x_array_1 = x_array_dict[node_1]
+            x_array_2 = pdf.loc[node_2, :].values
+            dx_array = x_array_2 - x_array_1
+            dx_array = np.where(
+                dx_array < -self.box_lengths / 2,
+                dx_array + self.box_lengths,
+                dx_array,
+            )
+            dx_array = np.where(
+                dx_array >= self.box_lengths / 2,
+                dx_array - self.box_lengths,
+                dx_array,
+            )
+            x_array_2 = x_array_1 + dx_array
+            x_array_dict[node_2] = x_array_2
+        assert len(x_array_dict) == self.n_particles
+        center_of_mass = (
+            sum([xyz for xyz in x_array_dict.values()]) / self.n_particles
+        )
+        center_of_mass = np.where(
+            center_of_mass < 0,
+            center_of_mass + self.box_lengths,
+            center_of_mass,
+        )
+        center_of_mass = np.where(
+            center_of_mass >= self.box_lengths,
+            center_of_mass - self.box_lengths,
+            center_of_mass,
+        )
+        center_of_mass_dict = {
+            f"x{i}": v for i, v in enumerate(center_of_mass)
+        }
+        self._center_of_mass_dict = center_of_mass_dict
+        return center_of_mass_dict
 
     #######################
     # Particle Properties #
