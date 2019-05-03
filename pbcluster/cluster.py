@@ -54,6 +54,7 @@ class Cluster:
         self.cutoff_distance = cutoff_distance
         self.n_dimensions = len(box_lengths)
         self.n_particles = len(particle_df)
+        self._minimum_node_cuts_dict = None
 
     def _split_edges_with_faces_1_dim(self, graph, dim):
         """Breaks all edges that cross the `dim`-dimension's periodic boundary
@@ -171,14 +172,19 @@ class Cluster:
         Returns:
             dict: `dimension_str → minimum_node_cuts` key-value pairs
         """
-        minimum_node_cuts = dict()
+        # If this was already computed, return the stored dictionary
+        if self._minimum_node_cuts_dict is not None:
+            return self._minimum_node_cuts_dict
+        minimum_node_cuts_dict = dict()
         for dim in range(self.n_dimensions):
             split_graph = self._split_edges_with_faces_1_dim(self.graph, dim)
             node_cut = nx.minimum_node_cut(
                 split_graph, f"x{dim}_low", f"x{dim}_high"
             )
-            minimum_node_cuts[f"x{dim}"] = len(node_cut)
-        return minimum_node_cuts
+            minimum_node_cuts_dict[f"x{dim}"] = len(node_cut)
+        # Store this because other computations like center of mass rely on it
+        self._minimum_node_cuts_dict = minimum_node_cuts_dict
+        return minimum_node_cuts_dict
 
     #######################
     # Particle Properties #
