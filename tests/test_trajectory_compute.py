@@ -26,7 +26,7 @@ def test_compute_minimum_node_cuts():
     box_lengths = np.array([4, 4])
     cutoff_distance = 1.0
     t = Trajectory(particle_positions, box_lengths, cutoff_distance)
-    df = t.compute_cluster_properties("all")
+    df = t.compute_cluster_properties(["minimum_node_cuts"])
     assert len(df) == 1
     assert df.iloc[0]["minimum_node_cuts_x0"] == 0
     assert df.iloc[0]["minimum_node_cuts_x1"] == 0
@@ -35,6 +35,24 @@ def test_compute_minimum_node_cuts():
         "timestep",
         "minimum_node_cuts_x0",
         "minimum_node_cuts_x1",
+    ]:
+        assert column in df.columns
+
+
+def test_compute_unwrapped_center_of_mass():
+    particle_positions = np.array([[0.25, 2], [3.25, 2], [3.75, 2]])
+    box_lengths = np.array([4, 4])
+    cutoff_distance = 1.0
+    t = Trajectory(particle_positions, box_lengths, cutoff_distance)
+    df = t.compute_cluster_properties(["unwrapped_center_of_mass"])
+    assert len(df) == 1
+    assert df.iloc[0]["unwrapped_center_of_mass_x0"] == -0.25
+    assert df.iloc[0]["unwrapped_center_of_mass_x1"] == 2.0
+    for column in [
+        "cluster_id",
+        "timestep",
+        "unwrapped_center_of_mass_x0",
+        "unwrapped_center_of_mass_x1",
     ]:
         assert column in df.columns
 
@@ -52,6 +70,8 @@ def test_compute_all_cluster_properties():
     assert row["minimum_node_cuts_x1"] == 0
     assert row["center_of_mass_x0"] == 3.75
     assert row["center_of_mass_x1"] == 2.0
+    assert row["unwrapped_center_of_mass_x0"] == -0.25
+    assert row["unwrapped_center_of_mass_x1"] == 2.0
     for column in [
         "cluster_id",
         "n_particles",
@@ -60,6 +80,8 @@ def test_compute_all_cluster_properties():
         "minimum_node_cuts_x1",
         "center_of_mass_x0",
         "center_of_mass_x1",
+        "unwrapped_center_of_mass_x0",
+        "unwrapped_center_of_mass_x1",
     ]:
         assert column in df.columns
 
