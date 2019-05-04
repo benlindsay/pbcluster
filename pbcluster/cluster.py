@@ -357,14 +357,13 @@ class Cluster:
             raise ValueError(
                 "one of include_dx or include_distance must be True"
             )
-        center_of_mass_dict = self.compute_center_of_mass()
         x_columns = [f"x{d}" for d in range(self.n_dimensions)]
+        unwrapped_x = self._compute_unwrapped_x().values
+        center_of_mass_dict = self.compute_center_of_mass(wrapped=False)
         center_of_mass = (
             pd.DataFrame([center_of_mass_dict]).filter(x_columns).values
         )
-        dx = self.particle_df[x_columns].values - center_of_mass
-        dx = np.where(dx < -self.box_lengths / 2, dx + self.box_lengths, dx)
-        dx = np.where(dx >= self.box_lengths / 2, dx - self.box_lengths, dx)
+        dx = unwrapped_x - center_of_mass
         if include_dx is True:
             arrays_dict = {
                 f"dx_from_com_x{d}": dx[:, d] for d in range(self.n_dimensions)
