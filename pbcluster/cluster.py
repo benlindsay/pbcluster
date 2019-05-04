@@ -46,6 +46,7 @@ class Cluster:
             n_particles=self.compute_n_particles,
             minimum_node_cuts=self.compute_minimum_node_cuts,
             center_of_mass=self.compute_center_of_mass,
+            unwrapped_center_of_mass=self.compute_unwrapped_center_of_mass,
         )
         self._particle_property_map = dict(
             coordination_number=self.compute_coordination_number,
@@ -59,6 +60,7 @@ class Cluster:
         self.n_particles = len(particle_df)
         self._minimum_node_cuts_dict = None
         self._unwrapped_x_df = None
+        self._unwrapped_center_of_mass_dict = None
         self._center_of_mass_dict = None
 
     def _split_edges_with_faces_1_dim(self, graph, dim):
@@ -191,14 +193,26 @@ class Cluster:
         self._minimum_node_cuts_dict = minimum_node_cuts_dict
         return minimum_node_cuts_dict
 
-    def compute_center_of_mass(self):
+    def compute_center_of_mass(self, wrapped=True):
         """Returns cluster center of mass dictionary
+
+        Args:
+            wrapped (boolean, optional): If True, a center of mass that
+                falls outside the box bounds is forced to be in range
+                [0, `box_lengths[d]`) for each dimension `d`. If using this to
+                compare to unwrapped particle coordinates, leave as False.
+                Defaults to False.
         
         Returns:
             dict: `{"x0": x0, "x1": x1, ...}`
         """
-        if self._center_of_mass_dict is not None:
+        if wrapped is True and self._center_of_mass_dict is not None:
             return self._center_of_mass_dict
+        if (
+            wrapped is False
+            and self._unwrapped_center_of_mass_dict is not None
+        ):
+            return self._unwrapped_center_of_mass_dict
         unwrapped_x_df = self._compute_unwrapped_x()
         if unwrapped_x_df is None:
             # _compute_unwrapped_x returns None if the particles bridge the
@@ -207,24 +221,39 @@ class Cluster:
             return None
         unwrapped_x_df.columns = [f"x{d}" for d in range(self.n_dimensions)]
         center_of_mass = unwrapped_x_df.mean(axis=0)
-        while np.any(center_of_mass < 0) or np.any(
-            center_of_mass > self.box_lengths
-        ):
-            center_of_mass = np.where(
-                center_of_mass < 0,
-                center_of_mass + self.box_lengths,
-                center_of_mass,
-            )
-            center_of_mass = np.where(
-                center_of_mass >= self.box_lengths,
-                center_of_mass - self.box_lengths,
-                center_of_mass,
-            )
-        center_of_mass_dict = {
-            f"x{i}": v for i, v in enumerate(center_of_mass)
-        }
-        self._center_of_mass_dict = center_of_mass_dict
-        return center_of_mass_dict
+        self._unwrapped_center_of_mass_dict = center_of_mass.to_dict()
+        if wrapped is True:
+            while np.any(center_of_mass < 0) or np.any(
+                center_of_mass > self.box_lengths
+            ):
+                center_of_mass = np.where(
+                    center_of_mass < 0,
+                    center_of_mass + self.box_lengths,
+                    center_of_mass,
+                )
+                center_of_mass = np.where(
+                    center_of_mass >= self.box_lengths,
+                    center_of_mass - self.box_lengths,
+                    center_of_mass,
+                )
+            self._center_of_mass_dict = {
+                f"x{i}": v for i, v in enumerate(center_of_mass)
+            }
+            return self._center_of_mass_dict
+        else:
+            return self._unwrapped_center_of_mass_dict
+
+    def compute_unwrapped_center_of_mass(self):
+        """Returns unwrapped center of mass, meaning it's the center of mass of
+        the unwrapped particle coordinates, and isn't necessarily inside the box
+        coordinates.
+        
+        Returns:
+            dict: Unwrapped center of mass coordinates, `"x*" → number`
+            key-value pairs. Technically, no max or min restriction, but
+            probably within 1 period of the box bounds.
+        """
+        return self.compute_center_of_mass(wrapped=False)
 
     #######################
     # Particle Properties #
