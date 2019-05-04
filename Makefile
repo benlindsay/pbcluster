@@ -71,6 +71,9 @@ test: ## run tests quickly with the default Python
 test-all: ## run tests on every Python version with tox
 	tox
 
+test-debug: ## drop into PDB on first failure, then end test session
+	py.test -x --pdb
+
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source pbcluster -m pytest
 	coverage report -m
