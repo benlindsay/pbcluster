@@ -58,6 +58,7 @@ class Cluster:
         self.n_dimensions = len(box_lengths)
         self.n_particles = len(particle_df)
         self._minimum_node_cuts_dict = None
+        self._unwrapped_x_df = None
         self._center_of_mass_dict = None
 
     def _split_edges_with_faces_1_dim(self, graph, dim):
@@ -198,58 +199,27 @@ class Cluster:
         """
         if self._center_of_mass_dict is not None:
             return self._center_of_mass_dict
-        minimum_node_cuts_dict = self.compute_minimum_node_cuts()
-        n_node_cuts = sum(value for value in minimum_node_cuts_dict.values())
-        # If n_node_cuts is greater than 0, that means the cluster spans the
-        # length of at least 1 dimension, and a center of mass can't
-        # necessarily be computed.
-        if n_node_cuts > 0:
+        unwrapped_x_df = self._compute_unwrapped_x()
+        if unwrapped_x_df is None:
+            # _compute_unwrapped_x returns None if the particles bridge the
+            # faces of at least 1 dimension. If that's the case, center of mass
+            # can't necessarily be computed either
             return None
-        if len(self.graph) == 1:
-            node = list(self.graph.nodes)[0]
-            center_of_mass_dict = (
-                self.particle_df.filter(regex="x.*").loc[node, :].to_dict()
+        unwrapped_x_df.columns = [f"x{d}" for d in range(self.n_dimensions)]
+        center_of_mass = unwrapped_x_df.mean(axis=0)
+        while np.any(center_of_mass < 0) or np.any(
+            center_of_mass > self.box_lengths
+        ):
+            center_of_mass = np.where(
+                center_of_mass < 0,
+                center_of_mass + self.box_lengths,
+                center_of_mass,
             )
-            self._center_of_mass_dict = center_of_mass_dict
-            return center_of_mass_dict
-        x_array_dict = dict()
-        first = True
-        pdf = self.particle_df.filter(regex="x.*")
-        for node_1, node_2 in nx.dfs_edges(self.graph):
-            if first:
-                x_array_1 = pdf.loc[node_1, :].values
-                x_array_dict[node_1] = x_array_1
-                first = False
-            else:
-                x_array_1 = x_array_dict[node_1]
-            x_array_2 = pdf.loc[node_2, :].values
-            dx_array = x_array_2 - x_array_1
-            dx_array = np.where(
-                dx_array < -self.box_lengths / 2,
-                dx_array + self.box_lengths,
-                dx_array,
+            center_of_mass = np.where(
+                center_of_mass >= self.box_lengths,
+                center_of_mass - self.box_lengths,
+                center_of_mass,
             )
-            dx_array = np.where(
-                dx_array >= self.box_lengths / 2,
-                dx_array - self.box_lengths,
-                dx_array,
-            )
-            x_array_2 = x_array_1 + dx_array
-            x_array_dict[node_2] = x_array_2
-        assert len(x_array_dict) == self.n_particles
-        center_of_mass = (
-            sum([xyz for xyz in x_array_dict.values()]) / self.n_particles
-        )
-        center_of_mass = np.where(
-            center_of_mass < 0,
-            center_of_mass + self.box_lengths,
-            center_of_mass,
-        )
-        center_of_mass = np.where(
-            center_of_mass >= self.box_lengths,
-            center_of_mass - self.box_lengths,
-            center_of_mass,
-        )
         center_of_mass_dict = {
             f"x{i}": v for i, v in enumerate(center_of_mass)
         }
@@ -278,6 +248,60 @@ class Cluster:
             index=self.particle_df.index,
         )
         return coordination_numbers_df
+
+    def _compute_unwrapped_x(self):
+        """Returns unwrapped particle coordinates dataframe
+        
+        Returns:
+            dataframe: Index is `particle_id`, matching index of `particle_df`.
+            Columns are `x_unwrapped_x*` where `*` represents 0, 1, ...
+            `n_particles`
+        """
+        if self._unwrapped_x_df is not None:
+            return self._unwrapped_x_df
+        minimum_node_cuts_dict = self.compute_minimum_node_cuts()
+        n_node_cuts = sum(value for value in minimum_node_cuts_dict.values())
+        # If n_node_cuts is greater than 0, that means the cluster spans the
+        # length of at least 1 dimension, and a center of mass can't
+        # necessarily be computed.
+        if n_node_cuts > 0:
+            return None
+        column_names_1 = [f"x{d}" for d in range(self.n_dimensions)]
+        column_names_2 = [f"unwrapped_x{d}" for d in range(self.n_dimensions)]
+        if len(self.graph) == 1:
+            unwrapped_x_df = self.particle_df.filter(column_names_1).copy()
+            unwrapped_x_df.columns = column_names_2
+            return unwrapped_x_df
+        x_array_dict = dict()
+        first = True
+        x_df = self.particle_df.filter(column_names_1)
+        for node_1, node_2 in nx.dfs_edges(self.graph):
+            if first:
+                x_array_1 = x_df.loc[node_1, :].values
+                x_array_dict[node_1] = x_array_1
+                first = False
+            else:
+                x_array_1 = x_array_dict[node_1]
+            x_array_2 = x_df.loc[node_2, :].values
+            dx_array = x_array_2 - x_array_1
+            dx_array = np.where(
+                dx_array < -self.box_lengths / 2,
+                dx_array + self.box_lengths,
+                dx_array,
+            )
+            dx_array = np.where(
+                dx_array >= self.box_lengths / 2,
+                dx_array - self.box_lengths,
+                dx_array,
+            )
+            x_array_2 = x_array_1 + dx_array
+            x_array_dict[node_2] = x_array_2
+        unwrapped_x_df = pd.DataFrame(x_array_dict).transpose().sort_index()
+        assert np.all(unwrapped_x_df.index == self.particle_df.index)
+        assert unwrapped_x_df.shape == (self.n_particles, self.n_dimensions)
+        unwrapped_x_df.columns = column_names_2
+        self._unwrapped_x_df = unwrapped_x_df
+        return unwrapped_x_df
 
     def compute_distance_from_com(
         self, include_dx=True, include_distance=True
