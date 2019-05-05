@@ -47,6 +47,8 @@ class Cluster:
             minimum_node_cuts=self.compute_minimum_node_cuts,
             center_of_mass=self.compute_center_of_mass,
             unwrapped_center_of_mass=self.compute_unwrapped_center_of_mass,
+            rg=self.compute_rg,
+            asphericity=self.compute_asphericity,
         )
         self._particle_property_map = dict(
             coordination_number=self.compute_coordination_number,
@@ -62,6 +64,9 @@ class Cluster:
         self._unwrapped_x_df = None
         self._unwrapped_center_of_mass_dict = None
         self._center_of_mass_dict = None
+        self._gyration_tensor = None
+        self._gyration_eigenvals = None
+        self._rg = None
 
     def _split_edges_with_faces_1_dim(self, graph, dim):
         """Breaks all edges that cross the `dim`-dimension's periodic boundary
@@ -254,6 +259,66 @@ class Cluster:
             probably within 1 period of the box bounds.
         """
         return self.compute_center_of_mass(wrapped=False)
+
+    def _compute_gyration_tensor(self):
+        """Returns cluster gyration tensor
+        
+        Returns:
+            ndarray: Shape (`n_dimensions`, `n_dimensions`) gyration tensor
+        """
+        if self._gyration_tensor is not None:
+            return self._gyration_tensor
+        dx_from_com = self.compute_distance_from_com(
+            include_distance=False
+        ).values
+        # This implements the first equation in
+        # https://en.wikipedia.org/wiki/Gyration_tensor
+        gyration_tensor = (
+            np.sum(dx_from_com[:, :, None] * dx_from_com[:, None, :], axis=0)
+            / self.n_particles
+        )
+        self._gyration_tensor = gyration_tensor
+        return gyration_tensor
+
+    def _compute_gyration_eigenvals(self):
+        """Returns numpy array of eigenvalues of the gyration tensor. Values are
+        not sorted.
+        
+        Returns:
+            ndarry: Shape (`n_dimensions`,) eigenvalues array
+        """
+        if self._gyration_eigenvals is not None:
+            return self._gyration_eigenvals
+        gyration_tensor = self._compute_gyration_tensor()
+        eigenvals, eigenvecs = np.linalg.eig(gyration_tensor)
+        self._gyration_eigenvals = eigenvals
+        return eigenvals
+
+    def compute_rg(self):
+        """Returns cluster radius of gyration.
+        
+        Returns:
+            float: Cluste radius of gyration
+        """
+        if self._rg is not None:
+            return self._rg
+        eigenvals = self._compute_gyration_eigenvals()
+        rg = np.sqrt(np.sum(eigenvals ** 2))
+        self._rg = rg
+        return rg
+
+    def compute_asphericity(self):
+        """Returns cluster asphericity
+        (see https://en.wikipedia.org/wiki/Gyration_tensor#Shape_descriptors)
+        
+        Returns:
+            float: Asphericity, normalized by radius of gyration squared
+        """
+        rg = self.compute_rg()
+        scaled_eigenvals = self._compute_gyration_eigenvals() / rg
+        evals_squared = np.sort(scaled_eigenvals ** 2)
+        asphericity = evals_squared[-1] - np.mean(evals_squared[:-1])
+        return asphericity
 
     #######################
     # Particle Properties #

@@ -72,6 +72,8 @@ def test_compute_all_cluster_properties():
     assert row["center_of_mass_x1"] == 2.0
     assert row["unwrapped_center_of_mass_x0"] == -0.25
     assert row["unwrapped_center_of_mass_x1"] == 2.0
+    assert row["rg"] == 0.5 / 3.0
+    assert row["asphericity"] == 1.0
     for column in [
         "cluster_id",
         "n_particles",
@@ -82,6 +84,8 @@ def test_compute_all_cluster_properties():
         "center_of_mass_x1",
         "unwrapped_center_of_mass_x0",
         "unwrapped_center_of_mass_x1",
+        "rg",
+        "asphericity",
     ]:
         assert column in df.columns
 
