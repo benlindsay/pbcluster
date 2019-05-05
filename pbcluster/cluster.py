@@ -298,7 +298,7 @@ class Cluster:
         """Returns cluster radius of gyration.
         
         Returns:
-            float: Cluste radius of gyration
+            float: Cluster radius of gyration
         """
         if self._rg is not None:
             return self._rg
