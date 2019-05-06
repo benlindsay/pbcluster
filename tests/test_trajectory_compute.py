@@ -90,6 +90,41 @@ def test_compute_all_cluster_properties():
         assert column in df.columns
 
 
+def test_compute_all_percolated_cluster_properties():
+    x = np.linspace(0.25, 3.75, 8)
+    y = np.ones(len(x))
+    particle_positions = np.stack([x, y], axis=1)
+    box_lengths = np.array([4, 4])
+    cutoff_distance = 0.75
+    t = Trajectory(particle_positions, box_lengths, cutoff_distance)
+    df = t.compute_cluster_properties("all")
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["n_particles"] == 8
+    assert row["minimum_node_cuts_x0"] == 1
+    assert row["minimum_node_cuts_x1"] == 0
+    assert np.isnan(row["center_of_mass_x0"])
+    assert np.isnan(row["center_of_mass_x1"])
+    assert np.isnan(row["unwrapped_center_of_mass_x0"])
+    assert np.isnan(row["unwrapped_center_of_mass_x1"])
+    assert np.isnan(row["rg"])
+    assert np.isnan(row["asphericity"])
+    for column in [
+        "cluster_id",
+        "n_particles",
+        "timestep",
+        "minimum_node_cuts_x0",
+        "minimum_node_cuts_x1",
+        "center_of_mass_x0",
+        "center_of_mass_x1",
+        "unwrapped_center_of_mass_x0",
+        "unwrapped_center_of_mass_x1",
+        "rg",
+        "asphericity",
+    ]:
+        assert column in df.columns
+
+
 def test_compute_coordination_number():
     particle_positions = np.array([[0.25, 2], [3.25, 2], [3.75, 2]])
     box_lengths = np.array([4, 4])

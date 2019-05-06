@@ -223,7 +223,12 @@ class Cluster:
             # _compute_unwrapped_x returns None if the particles bridge the
             # faces of at least 1 dimension. If that's the case, center of mass
             # can't necessarily be computed either
-            return None
+            center_of_mass = {
+                f"x{d}": np.nan for d in range(self.n_dimensions)
+            }
+            self._unwrapped_center_of_mass_dict = center_of_mass
+            self._center_of_mass_dict = center_of_mass
+            return center_of_mass
         unwrapped_x_df.columns = [f"x{d}" for d in range(self.n_dimensions)]
         center_of_mass = unwrapped_x_df.mean(axis=0)
         self._unwrapped_center_of_mass_dict = center_of_mass.to_dict()
@@ -271,12 +276,20 @@ class Cluster:
         dx_from_com = self.compute_distance_from_com(
             include_distance=False
         ).values
-        # This implements the first equation in
-        # https://en.wikipedia.org/wiki/Gyration_tensor
-        gyration_tensor = (
-            np.sum(dx_from_com[:, :, None] * dx_from_com[:, None, :], axis=0)
-            / self.n_particles
-        )
+        if np.isnan(dx_from_com).sum() > 0:
+            # If there are NaN values, that means it's a percolated cluster
+            gyration_tensor = np.nan * np.ones(
+                (self.n_dimensions, self.n_dimensions)
+            )
+        else:
+            # This implements the first equation in
+            # https://en.wikipedia.org/wiki/Gyration_tensor
+            gyration_tensor = (
+                np.sum(
+                    dx_from_com[:, :, None] * dx_from_com[:, None, :], axis=0
+                )
+                / self.n_particles
+            )
         self._gyration_tensor = gyration_tensor
         return gyration_tensor
 
@@ -290,7 +303,11 @@ class Cluster:
         if self._gyration_eigenvals is not None:
             return self._gyration_eigenvals
         gyration_tensor = self._compute_gyration_tensor()
-        eigenvals, eigenvecs = np.linalg.eig(gyration_tensor)
+        if np.isnan(gyration_tensor).sum() > 0:
+            # NaNs exist if the cluster is percolated
+            eigenvals = np.nan * np.ones(self.n_dimensions)
+        else:
+            eigenvals, eigenvecs = np.linalg.eig(gyration_tensor)
         self._gyration_eigenvals = eigenvals
         return eigenvals
 
@@ -315,9 +332,12 @@ class Cluster:
             float: Asphericity, normalized by radius of gyration squared
         """
         rg = self.compute_rg()
-        scaled_eigenvals = self._compute_gyration_eigenvals() / rg
-        evals_squared = np.sort(scaled_eigenvals ** 2)
-        asphericity = evals_squared[-1] - np.mean(evals_squared[:-1])
+        if rg == 0.0:
+            asphericity = 0
+        else:
+            scaled_eigenvals = self._compute_gyration_eigenvals() / rg
+            evals_squared = np.sort(scaled_eigenvals ** 2)
+            asphericity = evals_squared[-1] - np.mean(evals_squared[:-1])
         return asphericity
 
     #######################
@@ -348,7 +368,7 @@ class Cluster:
         
         Returns:
             dataframe: Index is `particle_id`, matching index of `particle_df`.
-            Columns are `x_unwrapped_x*` where `*` represents 0, 1, ...
+            Columns are `unwrapped_x*` where `*` represents 0, 1, ...
             `n_particles`
         """
         if self._unwrapped_x_df is not None:
@@ -423,20 +443,33 @@ class Cluster:
                 "one of include_dx or include_distance must be True"
             )
         x_columns = [f"x{d}" for d in range(self.n_dimensions)]
-        unwrapped_x = self._compute_unwrapped_x().values
-        center_of_mass_dict = self.compute_center_of_mass(wrapped=False)
-        center_of_mass = (
-            pd.DataFrame([center_of_mass_dict]).filter(x_columns).values
-        )
-        dx = unwrapped_x - center_of_mass
-        if include_dx is True:
-            arrays_dict = {
-                f"dx_from_com_x{d}": dx[:, d] for d in range(self.n_dimensions)
-            }
+        unwrapped_x_df = self._compute_unwrapped_x()
+        if unwrapped_x_df is None:
+            center_of_mass_dict = {xc: None for xc in x_columns}
+            distance_from_com_df = pd.DataFrame(index=self.particle_df.index)
+            if include_dx is True:
+                for d in range(self.n_dimensions):
+                    distance_from_com_df[f"dx_from_com_x{d}"] = np.nan
+            if include_distance is True:
+                distance_from_com_df["distance_from_com"] = np.nan
         else:
-            arrays_dict = {}
-        if include_distance is True:
-            distances = np.linalg.norm(dx, axis=1)
-            arrays_dict["distance_from_com"] = distances
-        distance_from_com_df = pd.DataFrame(dict(arrays_dict))
+            unwrapped_x = unwrapped_x_df.values
+            center_of_mass_dict = self.compute_center_of_mass(wrapped=False)
+            center_of_mass = (
+                pd.DataFrame([center_of_mass_dict]).filter(x_columns).values
+            )
+            dx = unwrapped_x - center_of_mass
+            if include_dx is True:
+                arrays_dict = {
+                    f"dx_from_com_x{d}": dx[:, d]
+                    for d in range(self.n_dimensions)
+                }
+            else:
+                arrays_dict = {}
+            if include_distance is True:
+                distances = np.linalg.norm(dx, axis=1)
+                arrays_dict["distance_from_com"] = distances
+            distance_from_com_df = pd.DataFrame(
+                dict(arrays_dict), index=self.particle_df.index
+            )
         return distance_from_com_df
