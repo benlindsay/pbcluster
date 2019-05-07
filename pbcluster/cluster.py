@@ -290,6 +290,8 @@ class Cluster:
                 )
                 / self.n_particles
             )
+            # Make sure gyration_tensor is symmetric
+            assert np.allclose(gyration_tensor, gyration_tensor.T)
         self._gyration_tensor = gyration_tensor
         return gyration_tensor
 
@@ -308,6 +310,10 @@ class Cluster:
             eigenvals = np.nan * np.ones(self.n_dimensions)
         else:
             eigenvals, eigenvecs = np.linalg.eig(gyration_tensor)
+            # Make sure all the numbers are real
+            assert np.isclose(np.sum(np.abs(np.imag(eigenvals))), 0.0)
+            # Drop the 0 imaginary part if it's there
+            eigenvals = eigenvals.real
         self._gyration_eigenvals = eigenvals
         return eigenvals
 
@@ -320,7 +326,10 @@ class Cluster:
         if self._rg is not None:
             return self._rg
         eigenvals = self._compute_gyration_eigenvals()
-        rg = np.sqrt(np.sum(eigenvals ** 2))
+        if np.any(np.isnan(eigenvals)):
+            rg = np.nan
+        else:
+            rg = np.sqrt(np.sum(eigenvals ** 2))
         self._rg = rg
         return rg
 
@@ -334,6 +343,8 @@ class Cluster:
         rg = self.compute_rg()
         if rg == 0.0:
             asphericity = 0
+        elif np.isnan(rg):
+            asphericity = np.nan
         else:
             scaled_eigenvals = self._compute_gyration_eigenvals() / rg
             evals_squared = np.sort(scaled_eigenvals ** 2)
