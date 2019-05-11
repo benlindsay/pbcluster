@@ -13,7 +13,9 @@ bumpversion
 codecov
 coverage
 flake8
+jupyter
 mock
+nbsphinx
 pre-commit
 pylint
 pytest
