@@ -5,7 +5,7 @@
 
    readme
    installation
-   usage
+   example
    pbcluster
    contributing
    authors
