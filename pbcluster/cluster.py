@@ -156,13 +156,14 @@ class Cluster:
         """
         if properties == "all":
             properties = self._particle_property_map.keys()
+        particle_df = self.particle_df.copy()
         for prop in properties:
             if prop not in self._particle_property_map:
                 raise ValueError(f"Property '{prop}' is not valid!")
             prop_function = self._particle_property_map[prop]
             property_df = prop_function()
             assert np.all(property_df.index == self.particle_df.index)
-            particle_df = self.particle_df.join(property_df, how="left")
+            particle_df = particle_df.join(property_df, how="left")
         return particle_df
 
     ######################
