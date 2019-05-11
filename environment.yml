@@ -18,7 +18,9 @@ dependencies:
   - bumpversion
   - coverage
   - flake8
+  - jupyter
   - mock
+  - nbsphinx
   - pre_commit
   - pylint
   - pytest
