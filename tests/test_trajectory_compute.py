@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from pbcluster.trajectory import Trajectory
+from pbcluster import Trajectory
 
 """Tests for Trajectory compute."""
 

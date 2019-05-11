@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pbcluster.trajectory import Trajectory
+from pbcluster import Trajectory
 
 """Tests for Trajectory initialization."""
 
