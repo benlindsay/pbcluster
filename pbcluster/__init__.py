@@ -4,6 +4,6 @@
 
 __author__ = """Ben Lindsay"""
 __email__ = "benjlindsay@gmail.com"
-__version__ = "0.1.6"
+__version__ = "0.2.0"
 
 from .trajectory import Trajectory
