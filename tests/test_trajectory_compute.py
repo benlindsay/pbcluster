@@ -189,3 +189,40 @@ def test_compute_all_particle_properties():
         "distance_from_com",
     ]:
         assert column in df.columns
+
+
+def test_compute_bonds():
+    particle_positions = np.array([[0.25, 2], [3.25, 2], [3.75, 2]])
+    box_lengths = np.array([4, 4])
+    cutoff_distance = 1.0
+    t = Trajectory(particle_positions, box_lengths, cutoff_distance)
+    bonds_df = t.compute_bonds()
+    assert len(bonds_df) == 2
+    assert np.all(bonds_df["particle_id_1"] == np.array([0, 1]))
+    assert np.all(bonds_df["particle_id_2"] == np.array([2, 2]))
+    assert np.all(bonds_df["timestep"] == np.array([0, 0]))
+    assert np.all(bonds_df["cluster_id"] == np.array([0, 0]))
+    for column in ["particle_id_1", "particle_id_2", "timestep", "cluster_id"]:
+        assert column in bonds_df.columns
+
+
+def test_compute_bond_durations():
+    particle_positions = np.array([[0.25, 2], [3.25, 2], [3.75, 2]])
+    box_lengths = np.array([4, 4])
+    cutoff_distance = 1.0
+    t = Trajectory(particle_positions, box_lengths, cutoff_distance)
+    bond_durations_df = t.compute_bond_durations()
+    assert len(bond_durations_df) == 2
+    assert np.all(bond_durations_df["particle_id_1"] == np.array([0, 1]))
+    assert np.all(bond_durations_df["particle_id_2"] == np.array([2, 2]))
+    assert np.all(bond_durations_df["start"] == np.array([0, 0]))
+    assert np.all(bond_durations_df["duration"] == np.array([1, 1]))
+    assert np.all(bond_durations_df["bonded_at_end"] == np.array([True, True]))
+    for column in [
+        "particle_id_1",
+        "particle_id_2",
+        "start",
+        "duration",
+        "bonded_at_end",
+    ]:
+        assert column in bond_durations_df.columns

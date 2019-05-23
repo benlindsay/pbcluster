@@ -166,6 +166,18 @@ class Cluster:
             particle_df = particle_df.join(property_df, how="left")
         return particle_df
 
+    def compute_bonds(self):
+        """Returns a dataframe with 2 columns, where each row has a pair of `particle_id`s associated with bonded particles
+        
+        Returns:
+            dataframe: Shape `(n_bonds, 2)`. Column names `particle_id_1` and
+            `particle_id_2`. 
+        """
+        bonds_df = pd.DataFrame(
+            self.graph.edges(), columns=["particle_id_1", "particle_id_2"]
+        ).sort_values(["particle_id_1", "particle_id_2"])
+        return bonds_df
+
     ######################
     # Cluster Properties #
     ######################

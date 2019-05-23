@@ -334,3 +334,68 @@ class Trajectory:
                 properties_df_list.append(properties_df)
         properties_df = pd.concat(properties_df_list, ignore_index=True)
         return properties_df
+
+    def compute_bonds(self):
+        """Returns dataframe of bonds for the whole trajectory.
+        
+        Returns:
+            dataframe: Shape `(n_bonds, 4)`. Column names `particle_id_1`,
+            `particle_id_2`, `timestep`, and `cluster_id`.
+        """
+        bonds_df_list = list()
+        for timestep, cluster_list in self.cluster_dict.items():
+            for i, cluster in enumerate(cluster_list):
+                bonds_df = (
+                    cluster.compute_bonds()
+                    .assign(timestep=timestep)
+                    .assign(cluster_id=i)
+                )
+                bonds_df_list.append(bonds_df)
+        bonds_df = pd.concat(bonds_df_list, axis=0, ignore_index=True)
+        return bonds_df
+
+    def compute_bond_durations(self):
+        """Returns dataframe with duration of bond for every distinct bonding
+        event. If particles 3 and 5 bond, then unbond, then bond again, that is
+        2 distinct bonding events.
+        
+        Returns:
+            dataframe: Shape `(n_bond_events, 5)`. Columns `particle_id_1`,
+            `particle_id_2`, `start`, `duration`, `bonded_at_end`
+        """
+        bonds_df = self.compute_bonds()
+
+        def get_bond_start_and_duration(df, final_timestep, delta_timestep=1):
+            df = df.copy()
+            timesteps = df["timestep"].values
+            dt = timesteps[1:] - timesteps[:-1]
+            is_start = np.zeros(len(df))
+            is_start[0] = 1
+            is_start[1:] = dt > delta_timestep
+            start_inds, = np.where(is_start == 1)
+            start_inds = np.concatenate((start_inds, [len(is_start)]))
+            durations = (start_inds[1:] - start_inds[:-1]) * delta_timestep
+            start_and_duration_df = pd.DataFrame(
+                dict(
+                    start=timesteps[start_inds[:-1]],
+                    duration=durations,
+                    bonded_at_end=False,
+                )
+            )
+            if timesteps[-1] == final_timestep:
+                start_and_duration_df.loc[
+                    len(start_and_duration_df) - 1, "bonded_at_end"
+                ] = True
+            return start_and_duration_df
+
+        bond_durations_df = (
+            bonds_df.sort_values(["particle_id_1", "particle_id_2"])
+            .groupby(["particle_id_1", "particle_id_2"])
+            .apply(
+                get_bond_start_and_duration,
+                final_timestep=bonds_df["timestep"].max(),
+            )
+            .reset_index()
+            .drop("level_2", axis=1)
+        )
+        return bond_durations_df
