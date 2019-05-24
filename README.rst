@@ -23,7 +23,7 @@ This packages makes it easier to analyze particle clusters in boxes with
 periodic boundaries.
 For example, take a look at this simulation box:
 
-.. image:: images/last-frame.png
+.. image:: https://raw.githubusercontent.com/benlindsay/pbcluster/master/images/last-frame.png
         :alt: Particle cluster split across box faces
 
 All these particles belong to a single cluster, but because particles jump to
