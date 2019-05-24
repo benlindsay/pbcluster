@@ -53,6 +53,14 @@ Particle Properties
 - ``coordination_number``: the number of neighboring particles connected to 
   a given particle
 
+Bond Properties
+---------------
+
+- ``bonds_df``: a dataframe of particle-particle "bonds" (neighbors within the
+  cutoff distance of each other
+- ``bond_durations_df``: a dataframe with data about how long particle pairs
+  were in contact
+
 You can install this with ``pip install pbcluster``.
 For more details check out the `Installation`_ page of the docs.
 
